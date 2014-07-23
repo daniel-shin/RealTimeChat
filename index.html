@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <div class="chat">
+        <input type="text" class="chat-name" placeholder="Enter your name">
+        <div class="chat-messages">
+        </div>
+        <textarea placeholder="Type your message"></textarea>
+        <div class="chat-status">Status: <span>Idle</span></div>
+    </div>
+
+    <script src="http://127.0.0.1:8080/socket.io/socket.io.js"></script>
+
+    <script>
+        (function(){ //wrapper to make variables local
+            var getNode = function(s){
+                return document.querySelector(s);
+                    },
+            // Get required nodes
+                status = getNode('.chat-status span'),
+                messages = getNode('.chat-messages'),
+                textarea = getNode('.chat textarea'),
+                chatName = getNode('.chat-name'),
+
+                statusDefault = status.textContent, //will be idle
+
+                setStatus = function(s) {
+                    status.textContent = s;
+
+                    if(s !== statusDefault) {
+                        var delay = setTimeout(function() {
+                            setStatus(statusDefault);
+                            clearInterval(delay);
+                        },3000);
+                    };
+
+                };
+                //setStatus('Testing');
+
+                console.log(statusDefault);
+            //check connection
+            try {
+                var socket=io.connect('http://127.0.0.1:8080');
+            } catch(e) {
+                //Set status to warn user
+            }
+
+            if(socket !==undefined){
+                //Listen for output
+                socket.on('output', function(data){
+                    if(data.length) { //check if the data is array object
+                        //Loop through results
+                        for(var x=0; x<data.length; x=x+1) {
+                            var message = document.createElement('div'); //create a div that will contain data and will be positioned between chat-messages div
+
+                            message.setAttribute('class', 'chat-message');
+                            message.textContent = data[x].name + ': ' + data[x].message;
+
+                            //Append to chat-messages div (messages)
+                            messages.appendChild(message);
+                            messages.insertBefore(message, messages.firstChild); //emit message in reverse order. the most recent message will be at the top. opposite of kakaotalk.
+                        }
+                    }
+                });
+
+
+                //Listen for a status
+                socket.on('status', function(data){
+                    setStatus((typeof data==='object') ? data.message : data); //object - normal message. string - error message contained in server.js
+
+                    if(data.clear === true) { //clear will be defined as a property of data as true when data is sent to database.
+                        textarea.value = ''; //clear is a flag variable!!!!!!
+                    }
+
+                });
+
+                //Listen for keydown
+                textarea.addEventListener('keydown', function(event){
+                    var self = this,
+                        name = chatName.value;
+
+                    // check for the enter key's value: console.log(event.which);
+
+                    //console.log(event);
+                    if(event.which === 13 && event.shiftKey === false) {
+                        //send this data to server
+                        socket.emit('input', { //for the 'input' event refer to server.js
+                            name:name,
+                            message:self.value
+                        }) //event.preventDefault needs to be after hitting enter.
+                        event.preventDefault() //this prevents 'newline' property of enter event.
+                    }
+
+
+                })
+            }
+        })();
+    </script>
+
+</body>
+</html>
