@@ -17,7 +17,7 @@ mongo.connect('mongodb://127.0.0.1/chat', function(err, db){
             socket.emit('output', res);
         })
 
-        //wait for input
+        //wait for input //
         socket.on('input', function(data){
             console.log(data);
             var name = data.name,
